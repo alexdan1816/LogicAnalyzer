@@ -60,8 +60,8 @@ all: main-build
 main-build: LogicAnalyzer.elf secondary-outputs
 
 # Tool invocations
-LogicAnalyzer.elf LogicAnalyzer.map: $(OBJS) $(USER_OBJS) F:\STM32f103\LogicAnalyzer\STM32F411CEUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "LogicAnalyzer.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"F:\STM32f103\LogicAnalyzer\STM32F411CEUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LogicAnalyzer.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+LogicAnalyzer.elf LogicAnalyzer.map: $(OBJS) $(USER_OBJS) F:\HeThongNhung2026.1\LogicAnalyzer\STM32F411CEUX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "LogicAnalyzer.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"F:\HeThongNhung2026.1\LogicAnalyzer\STM32F411CEUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="LogicAnalyzer.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

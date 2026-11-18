@@ -27,6 +27,14 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+// Mini LA State machine
+typedef enum
+{
+  SAMPLING_IDLE = 0,
+  SAMPLING_IN_PROGRESS,
+  SAMPLING_DONE
+} SamplingState;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -48,11 +56,9 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint8_t sample_buffer[BUFFER_SIZE];
-volatile uint8_t is_sampling_done = 0;
-
+volatile SamplingState sampling_state = SAMPLING_IDLE;
 
 uint8_t test = 'A';
-
 
 /* USER CODE END PV */
 
@@ -74,9 +80,9 @@ void LA_TransferComplete_CallBack(DMA_HandleTypeDef *hdma);
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
 
@@ -109,16 +115,17 @@ int main(void)
   /* USER CODE BEGIN 2 */
   // 4. Đăng kí hàm callback
   hdma_tim1_up.XferCpltCallback = LA_TransferComplete_CallBack;
-  // 1. Cho DMA2_Stream5 đọc từ thanh ghi GPIOA->IDR vào mảng dma_buffer
-  HAL_DMA_Start_IT(&hdma_tim1_up, (uint32_t)&(GPIOB->IDR), (uint32_t)sample_buffer, BUFFER_SIZE);
-  // 2. Cho phép TIM1 gửi tín hiệu trigger sang DMA mỗi khi tràn chu kỳ (mỗi 1 us)
-  __HAL_TIM_ENABLE_DMA(&htim1, TIM_DMA_UPDATE);
-  // 3. Khởi động TIM1
-  __HAL_TIM_ENABLE(&htim1);
+  // // 1. Cho DMA2_Stream5 đọc từ thanh ghi GPIOA->IDR vào mảng dma_buffer
+  // HAL_DMA_Start_IT(&hdma_tim1_up, (uint32_t)&(GPIOB->IDR), (uint32_t)sample_buffer, BUFFER_SIZE);
+  // // 2. Cho phép TIM1 gửi tín hiệu trigger sang DMA mỗi khi tràn chu kỳ (mỗi 1 us)
+  // __HAL_TIM_ENABLE_DMA(&htim1, TIM_DMA_UPDATE);
+  // // 3. Khởi động TIM1
+  // __HAL_TIM_ENABLE(&htim1);
 
-  is_sampling_done = 0;
+  // sampling_state = SAMPLING_IDLE;
 
-  HAL_UART_Transmit(&huart2, &test, 1, 100);
+  // HAL_UART_Transmit(&huart2, &test, 1, 100);
+   HAL_Delay(2000);
 
   /* USER CODE END 2 */
 
@@ -129,51 +136,35 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if(is_sampling_done)
-	  {
-		  HAL_Delay(5000);
-
-		  is_sampling_done = 0;
-
-		  HAL_UART_Transmit(&huart1, sample_buffer, BUFFER_SIZE,HAL_MAX_DELAY);
-
-		  HAL_Delay(5000);
-
-		  HAL_DMA_Start_IT(&hdma_tim1_up, (uint32_t)&(GPIOB->IDR), (uint32_t)sample_buffer, BUFFER_SIZE);
-		  // 2. Cho phép TIM1 gửi tín hiệu trigger sang DMA mỗi khi tràn chu kỳ (mỗi 1 us)
-		  __HAL_TIM_ENABLE_DMA(&htim1, TIM_DMA_UPDATE);
-		  // 3. Khởi động TIM1
-		  __HAL_TIM_ENABLE(&htim1);
-
-		  HAL_UART_Transmit(&huart2, &test, 1, 100);
-
-	  }
-//	  HAL_UART_Transmit(&huart1, &test, 1, 100);
-//
-//	  HAL_Delay(1000);
-
-
+    if (sampling_state == SAMPLING_DONE)
+    {
+      sampling_state = SAMPLING_IDLE;
+      HAL_UART_Transmit(&huart1, sample_buffer, BUFFER_SIZE, 5000);
+    }
+    //	  HAL_UART_Transmit(&huart1, &test, 1, 100);
+    //
+    //	  HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
   /** Configure the main internal regulator output voltage
-  */
+   */
   __HAL_RCC_PWR_CLK_ENABLE();
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
+   * in the RCC_OscInitTypeDef structure.
+   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -189,9 +180,8 @@ void SystemClock_Config(void)
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
@@ -204,10 +194,10 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief TIM1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief TIM1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_TIM1_Init(void)
 {
 
@@ -246,14 +236,13 @@ static void MX_TIM1_Init(void)
   /* USER CODE BEGIN TIM1_Init 2 */
 
   /* USER CODE END TIM1_Init 2 */
-
 }
 
 /**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief USART1 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_USART1_UART_Init(void)
 {
 
@@ -279,14 +268,13 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE BEGIN USART1_Init 2 */
 
   /* USER CODE END USART1_Init 2 */
-
 }
 
 /**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief USART2 Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_USART2_UART_Init(void)
 {
 
@@ -312,12 +300,11 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
-
 }
 
 /**
-  * Enable DMA controller clock
-  */
+ * Enable DMA controller clock
+ */
 static void MX_DMA_Init(void)
 {
 
@@ -328,14 +315,13 @@ static void MX_DMA_Init(void)
   /* DMA2_Stream5_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream5_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream5_IRQn);
-
 }
 
 /**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
@@ -348,19 +334,31 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /*Configure GPIO pins : PB0 PB1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  /*Configure GPIO pins : PB0 PB1 PB2 PB3
+                           PB4 PB5 PB6 PB7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB2 PB3 PB4 PB5
-                           PB6 PB7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5
-                          |GPIO_PIN_6|GPIO_PIN_7;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI4_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -370,18 +368,34 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void LA_TransferComplete_CallBack(DMA_HandleTypeDef *hdma)
 {
-	// Dừng Timer và ngắt DMA ngay khi đầy bộ đệm để tránh ghi đè
-	    HAL_TIM_Base_Stop(&htim1);
-	    __HAL_TIM_DISABLE_DMA(&htim1, TIM_DMA_UPDATE);
+  // Dừng Timer và ngắt DMA ngay khi đầy bộ đệm để tránh ghi đè
+  HAL_TIM_Base_Stop(&htim1);
 
-	    is_sampling_done = 1; // Bật cờ báo hiệu đã đo xong
+  __HAL_TIM_DISABLE_DMA(&htim1, TIM_DMA_UPDATE);
+
+  sampling_state = SAMPLING_DONE; // Bật cờ báo hiệu đã đo xong
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if ((GPIO_Pin & 0x00FF) != 0) // Giả sử dùng chân PA0 làm kênh trigger
+  {
+    // 1. Tắt luôn ngắt EXTI của chân này (đúng với ý tưởng "phát hiện một lần rồi tắt trigger" của bạn)
+    EXTI->IMR &= ~0X00FF; // Interrupt mask register
+    // 2. Kích hoạt Timer 1 và DMA để đổ thẳng IDR vào buffer RAM
+    HAL_DMA_Start_IT(&hdma_tim1_up, (uint32_t)&(GPIOB->IDR), (uint32_t)sample_buffer, BUFFER_SIZE);
+    // 2. Cho phép TIM1 gửi tín hiệu trigger sang DMA mỗi khi tràn chu kỳ (mỗi 1 us)
+    __HAL_TIM_ENABLE_DMA(&htim1, TIM_DMA_UPDATE);
+    // 3. Khởi động TIM1
+    __HAL_TIM_ENABLE(&htim1);
+  }
 }
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -394,12 +408,12 @@ void Error_Handler(void)
 }
 #ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */

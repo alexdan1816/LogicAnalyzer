@@ -1,0 +1,14 @@
+->sơ đồ khối: Phải nhận diện đc số lượng kênh, nền tangr xử lý, có PC hay không kết nối trực tiếp hay gián tiếp, truyền usb hay gì. mạch bv có không, nguồn điện gì
+->thiết kế từng khối 1: khối nào quan trọng nói trước (phần cứng thu data) . mạch bv là thứ phụ, tiếp theo là phần pc, protocol
+-> Kiểm thử: dung cấu hình nào để kiểm thử, thiết bị gì, cấu hình ra sao. có so sánh với thiết bị khác không, kết quả kiểm thử với từng kịch bản 1
+-> bang tổng kết với các kịch bản
+
+cuối kì: slide + báo cáo
+
+16/11/2026
+- Đổi các kênh sang pull up EXTI, dung ngắt để check có pulldown làm tín hiệu báo bắt đầu ghi
+- Vấn đề: ESP32 đang không cho ra được tín hiệu mẫu chuẩn.
+
+17/11/2026
+- Đã solve được vấn đề esp32 không ra được tín hiệu chuẩn, chọn chân khác và serial1 thay vì serial thì dung được (nope Im just being dumb and plug in the wrong pin - i missed the spot that was not connected to the pin)
+- Đã đọc được bằng ngắt
